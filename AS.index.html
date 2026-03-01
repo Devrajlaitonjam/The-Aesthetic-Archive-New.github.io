@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Aesthetic Archive</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Cormorant+Garamond:wght@300;400;500&family=Montserrat:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #FAF7F2;
+    --blush: #E8D5C4;
+    --terracotta: #C4714A;
+    --deep: #2C1810;
+    --gold: #B8965A;
+    --sage: #7A8C6E;
+    --sand: #D4B896;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--cream);
+    color: var(--deep);
+    font-family: 'Cormorant Garamond', serif;
+    cursor: default;
+  }
+
+  /* EDIT MODE STYLES */
+  .editable { position: relative; transition: outline 0.2s; }
+  .edit-mode .editable:hover { outline: 2px dashed var(--terracotta); cursor: text; }
+  .edit-mode .editable:focus { outline: 2px solid var(--terracotta); background: rgba(196,113,74,0.05); cursor: text; }
+
+  /* TOOLBAR */
+  #edit-toolbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 9999;
+    background: var(--deep);
+    color: var(--cream);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 20px;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 12px;
+    flex-wrap: wrap;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.3);
+  }
+  #edit-toolbar .tb-label { font-weight: 600; color: var(--gold); letter-spacing: 1px; text-transform: uppercase; margin-right: 8px; }
+  #edit-toolbar button {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: var(--cream);
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 11px;
+    transition: all 0.2s;
+  }
+  #edit-toolbar button:hover { background: var(--terracotta); border-color: var(--terracotta); }
+  #edit-toolbar select, #edit-toolbar input[type="color"] {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: var(--cream);
+    padding: 3px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    cursor: pointer;
+  }
+  #edit-toolbar input[type="color"] { width: 30px; height: 26px; padding: 1px; }
+  .tb-sep { width: 1px; height: 20px; background: rgba(255,255,255,0.2); margin: 0 4px; }
+  #edit-toggle {
+    margin-left: auto;
+    background: var(--terracotta) !important;
+    border-color: var(--terracotta) !important;
+    font-weight: 600 !important;
+    padding: 4px 16px !important;
+  }
+  #save-btn { background: var(--sage) !important; border-color: var(--sage) !important; }
+  #save-btn:hover { background: #5a7a50 !important; border-color: #5a7a50 !important; }
+  body { padding-top: 44px; }
+
+  /* SAVE STATUS BADGE */
+  #save-status {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 99999;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 12px;
+    letter-spacing: 1px;
+    padding: 12px 24px;
+    border-radius: 2px;
+    display: none;
+    transition: opacity 0.3s;
+  }
+  #save-status.success { background: var(--sage); color: white; display: block; }
+  #save-status.error { background: #c0392b; color: white; display: block; }
+  #save-status.saving { background: var(--gold); color: white; display: block; }
+
+  /* NAV */
+  nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px 60px;
+    border-bottom: 1px solid var(--blush);
+    background: var(--cream);
+    position: sticky;
+    top: 44px;
+    z-index: 100;
+  }
+  .nav-logo { font-family: 'Playfair Display', serif; font-size: 22px; font-style: italic; font-weight: 700; color: var(--deep); letter-spacing: 1px; }
+  .nav-links { display: flex; gap: 32px; list-style: none; }
+  .nav-links a { font-family: 'Montserrat', sans-serif; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--deep); text-decoration: none; transition: color 0.2s; }
+  .nav-links a:hover { color: var(--terracotta); }
+
+  /* HERO */
+  .hero { display: grid; grid-template-columns: 1fr 1fr; min-height: 85vh; }
+  .hero-text { padding: 80px 60px; display: flex; flex-direction: column; justify-content: center; background: var(--cream); }
+  .hero-tag { font-family: 'Montserrat', sans-serif; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: var(--terracotta); margin-bottom: 20px; }
+  .hero-title { font-family: 'Playfair Display', serif; font-size: clamp(48px, 6vw, 88px); line-height: 1.0; font-weight: 900; color: var(--deep); margin-bottom: 24px; }
+  .hero-title em { color: var(--terracotta); font-style: italic; }
+  .hero-sub { font-size: 18px; line-height: 1.7; color: #5A3E2E; max-width: 420px; margin-bottom: 40px; font-weight: 300; }
+  .hero-btns { display: flex; gap: 16px; flex-wrap: wrap; }
+  .btn-primary { background: var(--deep); color: var(--cream); padding: 14px 32px; font-family: 'Montserrat', sans-serif; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; text-decoration: none; border: 2px solid var(--deep); transition: all 0.3s; display: inline-block; }
+  .btn-primary:hover { background: var(--terracotta); border-color: var(--terracotta); }
+  .btn-secondary { background: transparent; color: var(--deep); padding: 14px 32px; font-family: 'Montserrat', sans-serif; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; text-decoration: none; border: 2px solid var(--deep); transition: all 0.3s; display: inline-block; }
+  .btn-secondary:hover { background: var(--deep); color: var(--cream); }
+
+  .hero-mosaic { position: relative; overflow: hidden; background: var(--blush); }
+  .hero-mosaic-inner { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; height: 100%; gap: 4px; }
+  .mosaic-cell { overflow: hidden; position: relative; background: var(--sand); }
+  .mosaic-cell img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.6s ease; }
+  .mosaic-cell:hover img { transform: scale(1.05); }
+  .mosaic-cell.tall { grid-row: span 2; }
+  .mosaic-cell.img-placeholder { display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 8px; color: var(--deep); font-family: 'Montserrat', sans-serif; font-size: 10px; letter-spacing: 1px; cursor: pointer; border: 2px dashed var(--sand); transition: all 0.2s; }
+  .mosaic-cell.img-placeholder:hover { border-color: var(--terracotta); background: var(--blush); }
+  .mosaic-cell.img-placeholder svg { opacity: 0.5; }
+
+  /* AFFILIATE BANNER */
+  .affiliate-strip { background: var(--deep); color: var(--cream); padding: 14px 60px; display: flex; gap: 40px; align-items: center; overflow-x: auto; }
+  .affiliate-strip span { font-family: 'Montserrat', sans-serif; font-size: 10px; letter-spacing: 3px; text-transform: uppercase; white-space: nowrap; opacity: 0.6; }
+  .affiliate-strip .brand { font-weight: 600; opacity: 1; color: var(--gold); font-size: 12px; }
+
+  /* SECTIONS */
+  .section { padding: 80px 60px; }
+  .section-header { text-align: center; margin-bottom: 60px; }
+  .section-tag { font-family: 'Montserrat', sans-serif; font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: var(--terracotta); margin-bottom: 12px; display: block; }
+  .section-title { font-family: 'Playfair Display', serif; font-size: 42px; font-weight: 700; color: var(--deep); line-height: 1.2; }
+  .section-divider { width: 60px; height: 2px; background: var(--gold); margin: 20px auto; }
+
+  /* PINTEREST GRID */
+  .pinterest-grid { columns: 4 220px; gap: 16px; }
+  .pin-card { break-inside: avoid; margin-bottom: 16px; background: white; border-radius: 4px; overflow: hidden; box-shadow: 0 2px 12px rgba(44,24,16,0.08); transition: transform 0.3s, box-shadow 0.3s; position: relative; }
+  .pin-card:hover { transform: translateY(-4px); box-shadow: 0 8px 32px rgba(44,24,16,0.14); }
+  .pin-img-wrap { position: relative; overflow: hidden; cursor: pointer; }
+  .pin-img-wrap img { width: 100%; display: block; transition: transform 0.4s; }
+  .pin-card:hover .pin-img-wrap img { transform: scale(1.04); }
+  .pin-img-placeholder { width: 100%; background: var(--blush); display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 8px; padding: 40px 20px; cursor: pointer; color: var(--deep); font-family: 'Montserrat', sans-serif; font-size: 10px; letter-spacing: 1px; min-height: 160px; transition: background 0.2s; }
+  .pin-img-placeholder:hover { background: var(--sand); }
+  .pin-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(44,24,16,0.45); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; opacity: 0; transition: opacity 0.3s; }
+  .pin-card:hover .pin-overlay { opacity: 1; }
+  .pin-overlay a { background: white; color: var(--deep); padding: 8px 18px; font-family: 'Montserrat', sans-serif; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; text-decoration: none; font-weight: 600; border-radius: 2px; transition: all 0.2s; }
+  .pin-overlay a:hover { background: var(--terracotta); color: white; }
+  .pin-body { padding: 14px 16px; }
+  .pin-brand { font-family: 'Montserrat', sans-serif; font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--terracotta); margin-bottom: 6px; }
+  .pin-title { font-family: 'Playfair Display', serif; font-size: 16px; font-weight: 700; color: var(--deep); margin-bottom: 6px; line-height: 1.3; }
+  .pin-desc { font-size: 13px; color: #7A5E4A; line-height: 1.5; margin-bottom: 10px; }
+  .pin-meta { display: flex; justify-content: space-between; align-items: center; }
+  .pin-price { font-family: 'Montserrat', sans-serif; font-weight: 600; font-size: 14px; color: var(--terracotta); }
+  .pin-link-badge { font-family: 'Montserrat', sans-serif; font-size: 9px; letter-spacing: 1px; text-transform: uppercase; background: var(--blush); color: var(--deep); padding: 3px 8px; border-radius: 2px; }
+
+  .add-card-btn { display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 8px; width: 100%; min-height: 200px; background: transparent; border: 2px dashed var(--blush); border-radius: 4px; cursor: pointer; font-family: 'Montserrat', sans-serif; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--sand); transition: all 0.2s; margin-bottom: 16px; break-inside: avoid; }
+  .add-card-btn:hover { border-color: var(--terracotta); color: var(--terracotta); }
+
+  /* ABOUT */
+  .about-section { background: var(--deep); color: var(--cream); display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+  .about-img { position: relative; overflow: hidden; min-height: 480px; background: var(--sand); display: flex; align-items: center; justify-content: center; }
+  .about-img img { width: 100%; height: 100%; object-fit: cover; }
+  .about-img-placeholder { display: flex; flex-direction: column; align-items: center; gap: 10px; color: var(--cream); opacity: 0.5; font-family: 'Montserrat', sans-serif; font-size: 11px; letter-spacing: 1px; cursor: pointer; }
+  .about-content { padding: 80px 60px; display: flex; flex-direction: column; justify-content: center; }
+  .about-content .section-tag { color: var(--gold); }
+  .about-content .section-title { color: var(--cream); }
+  .about-content .section-divider { margin-left: 0; }
+  .about-text { font-size: 17px; line-height: 1.8; color: var(--blush); margin-bottom: 20px; font-weight: 300; }
+  .about-owner { font-family: 'Playfair Display', serif; font-size: 22px; font-style: italic; color: var(--gold); margin-top: 20px; }
+  .about-owner-role { font-family: 'Montserrat', sans-serif; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--sand); margin-top: 4px; }
+
+  /* CONTACT */
+  .contact-section { background: var(--blush); text-align: center; padding: 80px 60px; }
+  .contact-cards { display: flex; justify-content: center; gap: 24px; flex-wrap: wrap; margin-top: 40px; }
+  .contact-card { background: var(--cream); padding: 32px 40px; display: flex; align-items: center; gap: 16px; box-shadow: 0 4px 20px rgba(44,24,16,0.08); text-decoration: none; color: var(--deep); transition: all 0.3s; border: 1px solid transparent; }
+  .contact-card:hover { border-color: var(--terracotta); transform: translateY(-3px); box-shadow: 0 8px 30px rgba(44,24,16,0.14); }
+  .mail-icon { width: 44px; height: 44px; background: var(--terracotta); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .mail-icon svg { width: 20px; height: 20px; fill: white; }
+  .contact-label { font-family: 'Montserrat', sans-serif; font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--terracotta); margin-bottom: 4px; }
+  .contact-email { font-family: 'Cormorant Garamond', serif; font-size: 16px; color: var(--deep); }
+
+  /* FOOTER */
+  footer { background: var(--deep); color: var(--cream); padding: 48px 60px 32px; }
+  .footer-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 40px; flex-wrap: wrap; padding-bottom: 32px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 24px; }
+  .footer-logo { font-family: 'Playfair Display', serif; font-size: 28px; font-style: italic; color: var(--gold); }
+  .footer-tagline { font-size: 13px; color: var(--blush); margin-top: 6px; max-width: 280px; line-height: 1.6; }
+  .footer-links h4 { font-family: 'Montserrat', sans-serif; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--gold); margin-bottom: 14px; }
+  .footer-links ul { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .footer-links ul a { font-size: 13px; color: var(--blush); text-decoration: none; transition: color 0.2s; }
+  .footer-links ul a:hover { color: var(--terracotta); }
+  .footer-bottom { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+  .footer-copy { font-family: 'Montserrat', sans-serif; font-size: 10px; letter-spacing: 1px; color: rgba(250,247,242,0.4); }
+
+  /* LINK SECTION */
+  .links-section { background: var(--cream); padding: 80px 60px; }
+  .links-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 24px; margin-top: 48px; }
+  .link-card { border: 1px solid var(--blush); overflow: hidden; transition: all 0.3s; background: white; }
+  .link-card:hover { box-shadow: 0 8px 32px rgba(44,24,16,0.12); transform: translateY(-3px); }
+  .link-card-img { height: 180px; overflow: hidden; background: var(--blush); display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative; }
+  .link-card-img img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s; }
+  .link-card:hover .link-card-img img { transform: scale(1.05); }
+  .link-card-img-placeholder { display: flex; flex-direction: column; align-items: center; gap: 6px; color: var(--deep); opacity: 0.5; font-family: 'Montserrat', sans-serif; font-size: 10px; letter-spacing: 1px; }
+  .link-card-body { padding: 16px 20px; }
+  .link-card-platform { font-family: 'Montserrat', sans-serif; font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--terracotta); margin-bottom: 6px; }
+  .link-card-title { font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 700; color: var(--deep); margin-bottom: 6px; }
+  .link-card-desc { font-size: 13px; color: #7A5E4A; line-height: 1.5; margin-bottom: 12px; }
+  .link-card-url-wrap { display: flex; gap: 6px; align-items: center; }
+  .link-card-url { flex: 1; font-family: 'Montserrat', sans-serif; font-size: 10px; color: var(--terracotta); border: 1px solid var(--blush); padding: 6px 10px; background: var(--cream); text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+  .link-go-btn { background: var(--terracotta); color: white; padding: 6px 12px; font-family: 'Montserrat', sans-serif; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; text-decoration: none; white-space: nowrap; transition: background 0.2s; }
+  .link-go-btn:hover { background: var(--deep); }
+  .add-link-btn { border: 2px dashed var(--blush); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; min-height: 300px; cursor: pointer; font-family: 'Montserrat', sans-serif; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--sand); background: transparent; transition: all 0.2s; }
+  .add-link-btn:hover { border-color: var(--terracotta); color: var(--terracotta); }
+
+  /* DELETE BUTTON (edit mode only) */
+  .delete-card-btn { display: none; position: absolute; top: 8px; right: 8px; z-index: 10; background: #c0392b; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; font-size: 14px; line-height: 24px; text-align: center; cursor: pointer; font-family: monospace; }
+  .edit-mode .pin-card:hover .delete-card-btn,
+  .edit-mode .link-card:hover .delete-card-btn { display: block; }
+
+  /* MODAL */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(44,24,16,0.6); z-index: 10000; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal { background: var(--cream); padding: 40px; width: 90%; max-width: 520px; max-height: 80vh; overflow-y: auto; position: relative; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+  .modal-title { font-family: 'Playfair Display', serif; font-size: 24px; font-weight: 700; color: var(--deep); margin-bottom: 24px; }
+  .modal-close { position: absolute; top: 16px; right: 16px; background: none; border: none; font-size: 24px; cursor: pointer; color: var(--deep); }
+  .modal label { display: block; font-family: 'Montserrat', sans-serif; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--terracotta); margin-bottom: 6px; margin-top: 16px; }
+  .modal input, .modal textarea, .modal select { width: 100%; padding: 10px 14px; border: 1px solid var(--blush); background: white; font-family: 'Cormorant Garamond', serif; font-size: 15px; color: var(--deep); resize: vertical; }
+  .modal input:focus, .modal textarea:focus { outline: none; border-color: var(--terracotta); }
+  .modal-btns { display: flex; gap: 12px; margin-top: 24px; }
+  .modal-btns button { padding: 10px 24px; font-family: 'Montserrat', sans-serif; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; border: 2px solid var(--deep); transition: all 0.2s; }
+  .modal-btn-primary { background: var(--deep); color: var(--cream); }
+  .modal-btn-primary:hover { background: var(--terracotta); border-color: var(--terracotta); }
+  .modal-btn-secondary { background: transparent; color: var(--deep); }
+  .modal-btn-secondary:hover { background: var(--blush); }
+
+  @media (max-width: 900px) {
+    .hero { grid-template-columns: 1fr; }
+    .hero-mosaic { min-height: 50vw; }
+    .about-section { grid-template-columns: 1fr; }
+    .about-img { min-height: 300px; }
+    nav { padding: 16px 24px; }
+    .section { padding: 60px 24px; }
+    .hero-text { padding: 60px 24px; }
+    .affiliate-strip { padding: 12px 24px; }
+    .contact-section, .links-section { padding: 60px 24px; }
+    footer { padding: 40px 24px 24px; }
+    .pinterest-grid { columns: 2 180px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SAVE STATUS -->
+<div id="save-status"></div>
+
+<!-- EDIT TOOLBAR -->
+<div id="edit-toolbar">
+  <span class="tb-label">✦ Edit Mode</span>
+  <div class="tb-sep"></div>
+  <button onclick="execCmd('bold')" title="Bold"><b>B</b></button>
+  <button onclick="execCmd('italic')" title="Italic"><i>I</i></button>
+  <button onclick="execCmd('underline')" title="Underline"><u>U</u></button>
+  <div class="tb-sep"></div>
+  <select onchange="execCmd('fontName', this.value)">
+    <option value="">Font</option>
+    <option value="Playfair Display">Playfair Display</option>
+    <option value="Cormorant Garamond">Cormorant Garamond</option>
+    <option value="Montserrat">Montserrat</option>
+    <option value="Georgia">Georgia</option>
+  </select>
+  <select onchange="execCmd('fontSize', this.value)">
+    <option value="">Size</option>
+    <option value="1">Small</option>
+    <option value="3">Normal</option>
+    <option value="4">Large</option>
+    <option value="5">XL</option>
+    <option value="6">XXL</option>
+    <option value="7">Huge</option>
+  </select>
+  <input type="color" value="#2C1810" onchange="execCmd('foreColor', this.value)" title="Text Color">
+  <input type="color" value="#FAF7F2" onchange="execCmd('hiliteColor', this.value)" title="Highlight">
+  <div class="tb-sep"></div>
+  <button onclick="execCmd('justifyLeft')">⬅</button>
+  <button onclick="execCmd('justifyCenter')">⬜</button>
+  <button onclick="execCmd('justifyRight')">➡</button>
+  <div class="tb-sep"></div>
+  <button onclick="showAddPinModal()">+ Product</button>
+  <button onclick="showAddLinkModal()">+ Link</button>
+  <div class="tb-sep"></div>
+  <button id="save-btn" onclick="saveChanges()">💾 Save Changes</button>
+  <button id="edit-toggle" onclick="toggleEditMode()">✏ Edit OFF</button>
+</div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo editable" contenteditable="false">The Aesthetic Archive</div>
+  <ul class="nav-links">
+    <li><a href="#featured">Curated</a></li>
+    <li><a href="#affiliates">Affiliates</a></li>
+    <li><a href="#about">About</a></li>
+    <li><a href="#contact">Contact</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-text">
+    <p class="hero-tag editable" contenteditable="false">Pinterest Affiliate Marketing</p>
+    <h1 class="hero-title editable" contenteditable="false">Curate. <em>Pin.</em> Earn.</h1>
+    <p class="hero-sub editable" contenteditable="false">A handpicked selection of aesthetic products from Amazon, Shopify, Meesho &amp; top brands — promoted with intention, styled with soul.</p>
+    <div class="hero-btns">
+      <a href="#featured" class="btn-primary">Explore Picks</a>
+      <a href="#affiliates" class="btn-secondary">Shop Affiliates</a>
+    </div>
+  </div>
+  <div class="hero-mosaic">
+    <div class="hero-mosaic-inner" id="hero-mosaic">
+      <div class="mosaic-cell tall img-placeholder" onclick="uploadHeroImage(this)">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        <span>Add Image</span>
+      </div>
+      <div class="mosaic-cell img-placeholder" onclick="uploadHeroImage(this)">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        <span>Add</span>
+      </div>
+      <div class="mosaic-cell img-placeholder" onclick="uploadHeroImage(this)">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        <span>Add</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- AFFILIATE STRIP -->
+<div class="affiliate-strip">
+  <span>Shop via</span>
+  <span class="brand editable" contenteditable="false">Amazon</span>
+  <span>•</span>
+  <span class="brand editable" contenteditable="false">Shopify</span>
+  <span>•</span>
+  <span class="brand editable" contenteditable="false">Meesho</span>
+  <span>•</span>
+  <span class="brand editable" contenteditable="false">Flipkart</span>
+  <span>•</span>
+  <span class="brand editable" contenteditable="false">Myntra</span>
+  <span>•</span>
+  <span class="brand editable" contenteditable="false">Nykaa</span>
+  <span>•</span>
+  <span class="brand editable" contenteditable="false">Pinterest</span>
+  <span>•</span>
+  <span class="brand editable" contenteditable="false">+ Your Brand</span>
+</div>
+
+<!-- FEATURED PRODUCTS -->
+<section class="section" id="featured">
+  <div class="section-header">
+    <span class="section-tag">Handpicked Finds</span>
+    <h2 class="section-title editable" contenteditable="false">Aesthetic Curations</h2>
+    <div class="section-divider"></div>
+    <p class="editable" style="font-size:16px;color:#7A5E4A;max-width:500px;margin:0 auto" contenteditable="false">Products that make life more beautiful — carefully selected and affiliate-linked.</p>
+  </div>
+
+  <div class="pinterest-grid" id="pin-grid">
+    <div class="pin-card">
+      <button class="delete-card-btn" onclick="deleteCard(this)" title="Delete">✕</button>
+      <div class="pin-img-wrap">
+        <div class="pin-img-placeholder" onclick="swapPinImage(this)" style="height:240px">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          <span>Click to add image</span>
+        </div>
+        <div class="pin-overlay"><a href="#" class="pin-shop-link">Shop Now</a></div>
+      </div>
+      <div class="pin-body">
+        <div class="pin-brand editable" contenteditable="false">Amazon</div>
+        <div class="pin-title editable" contenteditable="false">Boho Aesthetic Vase Set</div>
+        <div class="pin-desc editable" contenteditable="false">Hand-thrown terracotta with organic glaze — perfect for dried floral arrangements.</div>
+        <div class="pin-meta">
+          <span class="pin-price editable" contenteditable="false">₹1,299</span>
+          <span class="pin-link-badge">Affiliate Link</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="pin-card">
+      <button class="delete-card-btn" onclick="deleteCard(this)" title="Delete">✕</button>
+      <div class="pin-img-wrap">
+        <div class="pin-img-placeholder" onclick="swapPinImage(this)" style="height:300px">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          <span>Click to add image</span>
+        </div>
+        <div class="pin-overlay"><a href="#" class="pin-shop-link">Shop Now</a></div>
+      </div>
+      <div class="pin-body">
+        <div class="pin-brand editable" contenteditable="false">Meesho</div>
+        <div class="pin-title editable" contenteditable="false">Linen Co-ord Set</div>
+        <div class="pin-desc editable" contenteditable="false">Breezy, earth-toned linen for the effortlessly stylish. Free size fits all.</div>
+        <div class="pin-meta">
+          <span class="pin-price editable" contenteditable="false">₹849</span>
+          <span class="pin-link-badge">Affiliate Link</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="pin-card">
+      <button class="delete-card-btn" onclick="deleteCard(this)" title="Delete">✕</button>
+      <div class="pin-img-wrap">
+        <div class="pin-img-placeholder" onclick="swapPinImage(this)" style="height:200px">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          <span>Click to add image</span>
+        </div>
+        <div class="pin-overlay"><a href="#" class="pin-shop-link">Shop Now</a></div>
+      </div>
+      <div class="pin-body">
+        <div class="pin-brand editable" contenteditable="false">Shopify Store</div>
+        <div class="pin-title editable" contenteditable="false">Soy Wax Candle Trio</div>
+        <div class="pin-desc editable" contenteditable="false">Warm amber, sandalwood &amp; vanilla — handpoured in small batches.</div>
+        <div class="pin-meta">
+          <span class="pin-price editable" contenteditable="false">₹699</span>
+          <span class="pin-link-badge">Affiliate Link</span>
+        </div>
+      </div>
+    </div>
+
+    <button class="add-card-btn" onclick="showAddPinModal()">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      Add Product Card
+    </button>
+  </div>
+</section>
+
+<!-- AFFILIATE LINKS SECTION -->
+<section class="links-section" id="affiliates">
+  <div class="section-header">
+    <span class="section-tag">Brand Promotions</span>
+    <h2 class="section-title editable" contenteditable="false">Affiliate Link Hub</h2>
+    <div class="section-divider"></div>
+    <p class="editable" style="font-size:16px;color:#7A5E4A;max-width:500px;margin:0 auto" contenteditable="false">Direct links to top brand products. Click the image or button to shop.</p>
+  </div>
+  <div class="links-grid" id="links-grid">
+    <div class="link-card" style="position:relative">
+      <button class="delete-card-btn" onclick="deleteCard(this)" title="Delete">✕</button>
+      <div class="link-card-img" onclick="swapLinkImage(this)">
+        <div class="link-card-img-placeholder">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          <span>Click to add image</span>
+        </div>
+      </div>
+      <div class="link-card-body">
+        <div class="link-card-platform editable" contenteditable="false">Amazon</div>
+        <div class="link-card-title editable" contenteditable="false">Home Decor Collection</div>
+        <div class="link-card-desc editable" contenteditable="false">Curated home items that match any aesthetic vibe. Fast delivery.</div>
+        <div class="link-card-url-wrap">
+          <a href="#" class="link-card-url editable" contenteditable="false">https://amazon.in/your-affiliate-link</a>
+          <a href="#" class="link-go-btn">Go →</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="link-card" style="position:relative">
+      <button class="delete-card-btn" onclick="deleteCard(this)" title="Delete">✕</button>
+      <div class="link-card-img" onclick="swapLinkImage(this)">
+        <div class="link-card-img-placeholder">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          <span>Click to add image</span>
+        </div>
+      </div>
+      <div class="link-card-body">
+        <div class="link-card-platform editable" contenteditable="false">Meesho</div>
+        <div class="link-card-title editable" contenteditable="false">Fashion &amp; Lifestyle</div>
+        <div class="link-card-desc editable" contenteditable="false">Affordable fashion finds that look expensive. Free delivery above ₹299.</div>
+        <div class="link-card-url-wrap">
+          <a href="#" class="link-card-url editable" contenteditable="false">https://meesho.com/your-link</a>
+          <a href="#" class="link-go-btn">Go →</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="link-card" style="position:relative">
+      <button class="delete-card-btn" onclick="deleteCard(this)" title="Delete">✕</button>
+      <div class="link-card-img" onclick="swapLinkImage(this)">
+        <div class="link-card-img-placeholder">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          <span>Click to add image</span>
+        </div>
+      </div>
+      <div class="link-card-body">
+        <div class="link-card-platform editable" contenteditable="false">Shopify</div>
+        <div class="link-card-title editable" contenteditable="false">Independent Brand Store</div>
+        <div class="link-card-desc editable" contenteditable="false">Support small businesses with unique handcrafted products.</div>
+        <div class="link-card-url-wrap">
+          <a href="#" class="link-card-url editable" contenteditable="false">https://yourstore.myshopify.com</a>
+          <a href="#" class="link-go-btn">Go →</a>
+        </div>
+      </div>
+    </div>
+
+    <button class="add-link-btn" onclick="showAddLinkModal()">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      Add Affiliate Link
+    </button>
+  </div>
+</section>
+
+<!-- ABOUT -->
+<section class="about-section" id="about">
+  <div class="about-img" id="about-img-cell" onclick="swapAboutImage()">
+    <div class="about-img-placeholder">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      <span style="font-family:Montserrat,sans-serif;font-size:11px;letter-spacing:1px">Click to add photo</span>
+    </div>
+  </div>
+  <div class="about-content">
+    <span class="section-tag">About the Archive</span>
+    <h2 class="section-title editable" contenteditable="false">Curated with Purpose</h2>
+    <div class="section-divider"></div>
+    <p class="about-text editable" contenteditable="false">The Aesthetic Archive is a personal portfolio and affiliate marketing platform built on the belief that beautiful products deserve beautiful storytelling. Every pin, every product, every link is chosen with care.</p>
+    <p class="about-text editable" contenteditable="false">Through partnerships with Amazon, Shopify, Meesho, and other leading platforms, this space bridges discovery and purchase — earning commissions while delivering genuine value to every visitor.</p>
+    <div class="about-owner editable" contenteditable="false">Laitonjam Suraj Singh</div>
+    <div class="about-owner-role editable" contenteditable="false">Founder &amp; Curator — The Aesthetic Archive</div>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section class="contact-section" id="contact">
+  <span class="section-tag">Get in Touch</span>
+  <h2 class="section-title editable" contenteditable="false">Connect &amp; Collaborate</h2>
+  <div class="section-divider"></div>
+  <p class="editable" style="font-size:16px;color:#7A5E4A;max-width:500px;margin:16px auto 0;line-height:1.7" contenteditable="false">For brand collaborations, affiliate partnerships, or just to say hello — reach out anytime.</p>
+  <div class="contact-cards">
+    <a href="mailto:laitonjamsurajsingh@gmail.com" class="contact-card">
+      <div class="mail-icon"><svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg></div>
+      <div>
+        <div class="contact-label">Personal</div>
+        <div class="contact-email editable" contenteditable="false">laitonjamsurajsingh@gmail.com</div>
+      </div>
+    </a>
+    <a href="mailto:laitonjamsurajmeitei@gmail.com" class="contact-card">
+      <div class="mail-icon"><svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg></div>
+      <div>
+        <div class="contact-label">Alternate</div>
+        <div class="contact-email editable" contenteditable="false">laitonjamsurajmeitei@gmail.com</div>
+      </div>
+    </a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-top">
+    <div>
+      <div class="footer-logo editable" contenteditable="false">The Aesthetic Archive</div>
+      <div class="footer-tagline editable" contenteditable="false">A curated Pinterest affiliate marketing portfolio by Laitonjam Suraj Singh — where aesthetics meet commerce.</div>
+    </div>
+    <div class="footer-links">
+      <h4>Platforms</h4>
+      <ul>
+        <li><a href="#">Amazon Affiliates</a></li>
+        <li><a href="#">Meesho Store</a></li>
+        <li><a href="#">Shopify Partners</a></li>
+        <li><a href="#">Pinterest Profile</a></li>
+      </ul>
+    </div>
+    <div class="footer-links">
+      <h4>Navigate</h4>
+      <ul>
+        <li><a href="#featured">Curated Picks</a></li>
+        <li><a href="#affiliates">Affiliate Links</a></li>
+        <li><a href="#about">About</a></li>
+        <li><a href="#contact">Contact</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <div class="footer-copy editable" contenteditable="false">© 2024 The Aesthetic Archive — Laitonjam Suraj Singh. All rights reserved.</div>
+    <div class="footer-copy">Affiliate links may earn a commission.</div>
+  </div>
+</footer>
+
+<!-- ADD PIN MODAL -->
+<div class="modal-overlay" id="pin-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('pin-modal')">✕</button>
+    <div class="modal-title">Add Product Card</div>
+    <label>Platform / Brand</label>
+    <input type="text" id="pm-brand" placeholder="e.g. Amazon, Meesho, Shopify...">
+    <label>Product Title</label>
+    <input type="text" id="pm-title" placeholder="Product name">
+    <label>Description</label>
+    <textarea id="pm-desc" rows="3" placeholder="Short description..."></textarea>
+    <label>Price</label>
+    <input type="text" id="pm-price" placeholder="e.g. ₹999">
+    <label>Shop Link (URL)</label>
+    <input type="url" id="pm-link" placeholder="https://...">
+    <label>Image URL (optional)</label>
+    <input type="url" id="pm-img" placeholder="https://... or leave blank to upload later">
+    <div class="modal-btns">
+      <button class="modal-btn-primary" onclick="createPinCard()">Add Card</button>
+      <button class="modal-btn-secondary" onclick="closeModal('pin-modal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD LINK MODAL -->
+<div class="modal-overlay" id="link-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('link-modal')">✕</button>
+    <div class="modal-title">Add Affiliate Link</div>
+    <label>Platform</label>
+    <input type="text" id="lm-platform" placeholder="e.g. Amazon, Flipkart...">
+    <label>Title</label>
+    <input type="text" id="lm-title" placeholder="Title for this link">
+    <label>Description</label>
+    <textarea id="lm-desc" rows="2" placeholder="Brief description..."></textarea>
+    <label>Affiliate URL</label>
+    <input type="url" id="lm-url" placeholder="https://...">
+    <label>Image URL (optional)</label>
+    <input type="url" id="lm-img" placeholder="https://... or leave blank to upload later">
+    <div class="modal-btns">
+      <button class="modal-btn-primary" onclick="createLinkCard()">Add Link</button>
+      <button class="modal-btn-secondary" onclick="closeModal('link-modal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- EXPORT MODAL -->
+<div class="modal-overlay" id="export-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('export-modal')">✕</button>
+    <div class="modal-title">💾 Save Your Changes</div>
+    <p style="font-family:Cormorant Garamond,serif;font-size:16px;line-height:1.6;color:#5A3E2E;margin-bottom:16px">
+      Your edited site is ready! Download it as an HTML file and replace the file on your GitHub Pages repository to publish your changes.
+    </p>
+    <div style="background:#f0ebe4;padding:16px;border-left:3px solid var(--terracotta);font-family:Montserrat,sans-serif;font-size:11px;letter-spacing:0.5px;line-height:1.8;color:var(--deep)">
+      <strong>How to publish:</strong><br>
+      1. Click "Download HTML" below<br>
+      2. Go to your GitHub repo: <code>devrajlaitonjam/The-Aesthetic-Archive.github.io</code><br>
+      3. Replace <code>index.html</code> with the downloaded file<br>
+      4. Your live site updates within ~60 seconds ✓
+    </div>
+    <div class="modal-btns">
+      <button class="modal-btn-primary" onclick="downloadHTML()">⬇ Download HTML</button>
+      <button class="modal-btn-secondary" onclick="closeModal('export-modal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let editModeOn = false;
+
+  // ─── EDIT MODE ────────────────────────────────────────────────────────
+  function toggleEditMode() {
+    editModeOn = !editModeOn;
+    document.body.classList.toggle('edit-mode', editModeOn);
+    const btn = document.getElementById('edit-toggle');
+    btn.textContent = editModeOn ? '✏ Edit ON' : '✏ Edit OFF';
+    btn.style.background = editModeOn ? '#7A8C6E' : '';
+    btn.style.borderColor = editModeOn ? '#7A8C6E' : '';
+
+    document.querySelectorAll('.editable').forEach(el => {
+      el.contentEditable = editModeOn ? 'true' : 'false';
+    });
+
+    // Show/hide image upload hints
+    document.querySelectorAll('.pin-img-placeholder, .link-card-img, .mosaic-cell.img-placeholder, #about-img-cell').forEach(el => {
+      el.style.pointerEvents = editModeOn ? 'auto' : (el.classList.contains('link-card-img') && el.querySelector('img') ? 'none' : 'auto');
+    });
+
+    showStatus(editModeOn ? 'Edit mode ON — click any text to edit' : 'Edit mode OFF', editModeOn ? 'saving' : 'success');
+  }
+
+  function execCmd(cmd, val) {
+    document.execCommand(cmd, false, val || null);
+  }
+
+  // ─── STATUS BADGE ─────────────────────────────────────────────────────
+  let statusTimer;
+  function showStatus(msg, type = 'success') {
+    clearTimeout(statusTimer);
+    const el = document.getElementById('save-status');
+    el.textContent = msg;
+    el.className = type;
+    statusTimer = setTimeout(() => { el.style.display = 'none'; el.className = ''; }, 3000);
+  }
+
+  // ─── SAVE = DOWNLOAD HTML ─────────────────────────────────────────────
+  function saveChanges() {
+    // Turn off edit mode first so contenteditable="true" doesn't get saved
+    const wasEditing = editModeOn;
+    if (wasEditing) {
+      // Temporarily disable edit mode for clean export
+      document.querySelectorAll('.editable').forEach(el => el.contentEditable = 'false');
+      document.body.classList.remove('edit-mode');
+    }
+
+    // Show export instructions
+    closeModal('pin-modal');
+    closeModal('link-modal');
+    document.getElementById('export-modal').classList.add('open');
+
+    if (wasEditing) {
+      // Restore edit mode state
+      setTimeout(() => {
+        document.querySelectorAll('.editable').forEach(el => el.contentEditable = 'true');
+        document.body.classList.add('edit-mode');
+      }, 100);
+    }
+  }
+
+  function downloadHTML() {
+    // Capture full clean page HTML
+    const clone = document.documentElement.cloneNode(true);
+
+    // Strip edit toolbar from clone
+    const toolbar = clone.querySelector('#edit-toolbar');
+    if (toolbar) toolbar.remove();
+    const saveStatus = clone.querySelector('#save-status');
+    if (saveStatus) saveStatus.remove();
+    const exportModal = clone.querySelector('#export-modal');
+    if (exportModal) exportModal.remove();
+
+    // Remove body padding added for toolbar
+    clone.querySelector('body').style.paddingTop = '0';
+
+    // Disable all contenteditable
+    clone.querySelectorAll('[contenteditable]').forEach(el => el.removeAttribute('contenteditable'));
+
+    // Remove delete buttons from clone
+    clone.querySelectorAll('.delete-card-btn').forEach(el => el.remove());
+
+    // Remove edit-mode class
+    clone.querySelector('body').classList.remove('edit-mode');
+
+    // Remove the toggleEditMode / toolbar JS (everything in <script>)
+    // Keep it for end user's benefit actually — they might want to re-edit
+
+    const html = '<!DOCTYPE html>\n' + clone.outerHTML;
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'index.html';
+    a.click();
+    URL.revokeObjectURL(url);
+
+    closeModal('export-modal');
+    showStatus('✓ Downloaded! Now upload to GitHub to publish.', 'success');
+  }
+
+  // ─── IMAGE UPLOAD ─────────────────────────────────────────────────────
+  function pickImageForElement(callback) {
+    const inp = document.createElement('input');
+    inp.type = 'file';
+    inp.accept = 'image/*';
+    inp.onchange = e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = ev => callback(ev.target.result);
+      reader.readAsDataURL(file);
+    };
+    inp.click();
+  }
+
+  function uploadHeroImage(cell) {
+    pickImageForElement(src => {
+      const img = document.createElement('img');
+      img.src = src;
+      img.style.cssText = 'width:100%;height:100%;object-fit:cover';
+      cell.classList.remove('img-placeholder');
+      cell.innerHTML = '';
+      cell.appendChild(img);
+      cell.onclick = () => uploadHeroImage(cell);
+      showStatus('✓ Hero image added', 'success');
+    });
+  }
+
+  function swapPinImage(placeholder) {
+    pickImageForElement(src => {
+      const wrap = placeholder.parentElement;
+      const img = document.createElement('img');
+      img.src = src;
+      img.style.width = '100%';
+      const overlay = wrap.querySelector('.pin-overlay');
+      placeholder.remove();
+      wrap.insertBefore(img, overlay);
+      showStatus('✓ Product image added', 'success');
+    });
+  }
+
+  function swapLinkImage(cell) {
+    if (!editModeOn && cell.querySelector('img')) return;
+    pickImageForElement(src => {
+      const img = document.createElement('img');
+      img.src = src;
+      img.style.cssText = 'width:100%;height:100%;object-fit:cover;transition:transform 0.4s';
+      cell.innerHTML = '';
+      cell.appendChild(img);
+      showStatus('✓ Link image added', 'success');
+    });
+  }
+
+  function swapAboutImage() {
+    if (!editModeOn && document.getElementById('about-img-cell').querySelector('img')) return;
+    pickImageForElement(src => {
+      const cell = document.getElementById('about-img-cell');
+      cell.innerHTML = '';
+      const img = document.createElement('img');
+      img.src = src;
+      img.style.cssText = 'width:100%;height:100%;object-fit:cover';
+      cell.appendChild(img);
+      // Re-attach click for re-editing
+      cell.onclick = () => { if(editModeOn) swapAboutImage(); };
+      showStatus('✓ About photo added', 'success');
+    });
+  }
+
+  // ─── DELETE CARD ──────────────────────────────────────────────────────
+  function deleteCard(btn) {
+    if (!confirm('Delete this card?')) return;
+    btn.closest('.pin-card, .link-card').remove();
+    showStatus('Card deleted', 'success');
+  }
+
+  // ─── MODALS ───────────────────────────────────────────────────────────
+  function showAddPinModal() { document.getElementById('pin-modal').classList.add('open'); }
+  function showAddLinkModal() { document.getElementById('link-modal').classList.add('open'); }
+  function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+  function createPinCard() {
+    const brand = document.getElementById('pm-brand').value || 'Brand';
+    const title = document.getElementById('pm-title').value || 'Product Title';
+    const desc = document.getElementById('pm-desc').value || 'Description here.';
+    const price = document.getElementById('pm-price').value || '₹0';
+    const link = document.getElementById('pm-link').value || '#';
+    const imgUrl = document.getElementById('pm-img').value;
+
+    const imgSection = imgUrl
+      ? `<img src="${imgUrl}" style="width:100%;display:block">`
+      : `<div class="pin-img-placeholder" onclick="swapPinImage(this)" style="height:220px"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span>Click to add image</span></div>`;
+
+    const card = document.createElement('div');
+    card.className = 'pin-card';
+    card.innerHTML = `
+      <button class="delete-card-btn" onclick="deleteCard(this)" title="Delete">✕</button>
+      <div class="pin-img-wrap">
+        ${imgSection}
+        <div class="pin-overlay"><a href="${link}" target="_blank" rel="noopener">Shop Now</a></div>
+      </div>
+      <div class="pin-body">
+        <div class="pin-brand editable" contenteditable="${editModeOn}">${brand}</div>
+        <div class="pin-title editable" contenteditable="${editModeOn}">${title}</div>
+        <div class="pin-desc editable" contenteditable="${editModeOn}">${desc}</div>
+        <div class="pin-meta">
+          <span class="pin-price editable" contenteditable="${editModeOn}">${price}</span>
+          <span class="pin-link-badge">Affiliate Link</span>
+        </div>
+      </div>`;
+
+    const addBtn = document.querySelector('.add-card-btn');
+    document.getElementById('pin-grid').insertBefore(card, addBtn);
+    closeModal('pin-modal');
+    ['pm-brand','pm-title','pm-desc','pm-price','pm-link','pm-img'].forEach(id => document.getElementById(id).value = '');
+    showStatus('✓ Product card added', 'success');
+  }
+
+  function createLinkCard() {
+    const platform = document.getElementById('lm-platform').value || 'Platform';
+    const title = document.getElementById('lm-title').value || 'Link Title';
+    const desc = document.getElementById('lm-desc').value || 'Description.';
+    const url = document.getElementById('lm-url').value || '#';
+    const imgUrl = document.getElementById('lm-img').value;
+
+    const imgSection = imgUrl
+      ? `<img src="${imgUrl}" style="width:100%;height:100%;object-fit:cover">`
+      : `<div class="link-card-img-placeholder"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span>Click to add image</span></div>`;
+
+    const card = document.createElement('div');
+    card.className = 'link-card';
+    card.style.position = 'relative';
+    card.innerHTML = `
+      <button class="delete-card-btn" onclick="deleteCard(this)" title="Delete">✕</button>
+      <div class="link-card-img" onclick="swapLinkImage(this)">${imgSection}</div>
+      <div class="link-card-body">
+        <div class="link-card-platform editable" contenteditable="${editModeOn}">${platform}</div>
+        <div class="link-card-title editable" contenteditable="${editModeOn}">${title}</div>
+        <div class="link-card-desc editable" contenteditable="${editModeOn}">${desc}</div>
+        <div class="link-card-url-wrap">
+          <a href="${url}" class="link-card-url editable" contenteditable="${editModeOn}" target="_blank" rel="noopener">${url}</a>
+          <a href="${url}" class="link-go-btn" target="_blank" rel="noopener">Go →</a>
+        </div>
+      </div>`;
+
+    const addBtn = document.querySelector('.add-link-btn');
+    document.getElementById('links-grid').insertBefore(card, addBtn);
+    closeModal('link-modal');
+    ['lm-platform','lm-title','lm-desc','lm-url','lm-img'].forEach(id => document.getElementById(id).value = '');
+    showStatus('✓ Affiliate link added', 'success');
+  }
+
+  // Close modals on overlay click
+  document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
+  });
+
+  // Smooth scroll
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+      const id = a.getAttribute('href').slice(1);
+      const el = document.getElementById(id);
+      if (el) { e.preventDefault(); el.scrollIntoView({ behavior: 'smooth' }); }
+    });
+  });
+
+  // Hint on load
+  setTimeout(() => showStatus('Tip: Click "✏ Edit OFF" to start editing text & images', 'saving'), 1200);
+</script>
+</body>
+</html>
